@@ -1,0 +1,12 @@
+{
+  "name": "skillcli",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "skill": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "node --check src/cli.js"
+  }
+}
