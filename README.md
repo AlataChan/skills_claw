@@ -2,7 +2,7 @@
 
 Install (global):
 - `npm i -g skills_claw`
-- `npm i -g @alata/skills_claw`
+- `npm i -g @alatachan/skills_claw`
 
 Run:
 - `skill --help`

@@ -1,5 +1,5 @@
 {
-  "name": "@alata/skills_claw",
+  "name": "@alatachan/skills_claw",
   "version": "1.0.0",
   "description": "Scoped wrapper for skills_claw (SkillCLI).",
   "type": "module",
