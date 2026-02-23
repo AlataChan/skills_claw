@@ -1,5 +1,12 @@
 # SkillCLI (prototype)
 
+Install (global):
+- `npm i -g skills_claw`
+- `npm i -g @alata/skills_claw`
+
+Run:
+- `skill --help`
+
 Implemented commands:
 - `skill init [name]`
 - `skill validate [file] [--target openai]`

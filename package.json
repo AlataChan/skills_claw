@@ -1,12 +1,29 @@
 {
-  "name": "skillcli",
+  "name": "skills_claw",
   "version": "1.0.0",
+  "description": "SkillCLI (prototype): manage AI skills like dependencies (discover, install, validate, emit).",
   "type": "module",
+  "preferGlobal": true,
   "bin": {
     "skill": "src/cli.js"
   },
   "scripts": {
     "test": "node --test",
     "lint": "node --check src/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlataChan/skills_claw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AlataChan/skills_claw/issues"
+  },
+  "homepage": "https://github.com/AlataChan/skills_claw#readme",
+  "files": [
+    "src/**",
+    "scripts/**"
+  ],
+  "engines": {
+    "node": ">=18"
   }
 }

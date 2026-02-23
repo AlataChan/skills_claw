@@ -1,0 +1,22 @@
+{
+  "name": "@alata/skills_claw",
+  "version": "1.0.0",
+  "description": "Scoped wrapper for skills_claw (SkillCLI).",
+  "type": "module",
+  "bin": {
+    "skill": "bin/skill.js"
+  },
+  "dependencies": {
+    "skills_claw": "1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin/**",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
