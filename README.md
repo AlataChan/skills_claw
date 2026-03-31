@@ -23,8 +23,8 @@ Implemented commands:
 - `skill check-deps <name>`
 - `skill emit <name> --target <claude-code|openai|anthropic-api> --out <dir>`
 - `skill index rebuild|show [--json]`
-- `skill index match "<query>" [--json] [--threshold 0.5] [--max 5]`
-- `skill index deps <name>`
+- `skill index match "<query>" [--json] [--threshold 0.5] [--max 5] [--exclude a,b] [--loaded-domains finance,document]`
+- `skill index deps <name>` / `skill index deps --all`
 - `skill index validate`
 - `skill index core --json`
 - `skill index load <name> [--with-deps] --json`

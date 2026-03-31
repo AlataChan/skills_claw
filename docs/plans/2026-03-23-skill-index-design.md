@@ -1,16 +1,26 @@
 # SkillCLI v2 — Skill Index & Runtime Loading 设计文档
 
+> ## ⚠️ ARCHIVED — 请勿基于本文档实现
+>
+> 本文档是初始设计探索稿，已被实现方案完全取代。
+> 权威实现计划：[`2026-03-23-cli-first-alignment.md`](./2026-03-23-cli-first-alignment.md)
+> 架构总纲：[`cli-first-agent-architecture.md`](../cli-first-agent-architecture.md)
+>
+> **本稿与实际实现的关键差异（勿被误导）：**
+>
+> | 本稿描述 | 实际实现 |
+> |---------|---------|
+> | `skill.yaml` 为 canonical format | `skill.md`（markdown frontmatter）为 canonical，YAML 仅作 legacy import |
+> | `description` 用于 compact routing table | `summary` 用于路由表，`description` 仅为人类可读元数据 |
+> | 模块拆分为 `matcher.js` + `depgraph.js` | 合并为 `router.js`（同时负责 matching 和 dependency resolution） |
+> | 另有独立的 `hook.js` 输出模块 | `hook.js` 存在且与本稿设计基本一致 |
+> | `triggers` 在 `tier: domain` 时必填 | `triggers` 可选，缺失时 skill 仅不可路由（non-routable） |
+> | 中文分词用 2-gram/3-gram 滑动窗口 | 简单字符级 CJK 分割 + token 重叠匹配 |
+
 **版本：** v0.1 (Draft)
 **日期：** 2026-03-23
-**状态：** 已被实现方案取代
+**状态：** 🔴 ARCHIVED — 已被实现方案取代
 **前置文档：** [cli-first-agent-architecture.md](../cli-first-agent-architecture.md) | [skillcli-design.md](./2026-02-22-skillcli-design.md)
-
-> 实现对齐说明：
-> 当前代码以 [`docs/plans/2026-03-23-cli-first-alignment.md`](/Users/apple/Documents/2.1%20AI%20Journey/Cursor_projects/skills_claw/docs/plans/2026-03-23-cli-first-alignment.md) 为准。
-> 与本稿不同的关键点：
-> 1. canonical storage 已切到 `skill.md`，`skill.yaml` 仅作 legacy import。
-> 2. compact routing table 使用 `summary`，不再把 `description` 作为主路由文本。
-> 3. parser/runtime 模块采用 `frontmatter.js` + `router.js`，其中 `router.js` 同时负责 matching 和 deps。
 
 ---
 

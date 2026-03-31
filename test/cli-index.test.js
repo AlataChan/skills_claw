@@ -48,3 +48,65 @@ Review invoice packets.
     await fs.rm(cwd, { recursive: true, force: true });
   }
 });
+
+test('index deps --all returns the dependency map for installed skills', async () => {
+  const cwd = await fs.mkdtemp(path.join(os.tmpdir(), 'skillcli-index-'));
+  try {
+    await withTempSkillcliHome(async (home) => {
+      const invoiceSkillPath = path.join(cwd, 'invoice-review.skill.md');
+      await fs.writeFile(invoiceSkillPath, `---
+name: invoice-review
+version: 1.0.0
+description: "Invoice review"
+tier: domain
+domain: finance
+triggers: [invoice]
+summary: "Review invoices"
+depends: [pdf]
+priority: normal
+capabilities: ["read-file"]
+mcp_deps: []
+inputs: []
+---
+Review invoice packets.
+`, 'utf-8');
+      const pdfSkillPath = path.join(cwd, 'pdf.skill.md');
+      await fs.writeFile(pdfSkillPath, `---
+name: pdf
+version: 1.0.0
+description: "PDF operations"
+tier: domain
+domain: document
+triggers: [.pdf]
+summary: "PDF operations"
+depends: []
+priority: normal
+capabilities: ["read-file"]
+mcp_deps: []
+inputs: []
+---
+Handle PDFs.
+`, 'utf-8');
+
+      await execFileAsync(process.execPath, [path.resolve('src/cli.js'), 'install', invoiceSkillPath], {
+        cwd,
+        env: { ...process.env, SKILLCLI_HOME: home },
+      });
+      await execFileAsync(process.execPath, [path.resolve('src/cli.js'), 'install', pdfSkillPath], {
+        cwd,
+        env: { ...process.env, SKILLCLI_HOME: home },
+      });
+
+      const { stdout } = await execFileAsync(process.execPath, [path.resolve('src/cli.js'), 'index', 'deps', '--all'], {
+        cwd,
+        env: { ...process.env, SKILLCLI_HOME: home },
+      });
+
+      const payload = JSON.parse(stdout);
+      assert.deepEqual(payload['invoice-review'], ['invoice-review', 'pdf']);
+      assert.deepEqual(payload.pdf, ['pdf']);
+    });
+  } finally {
+    await fs.rm(cwd, { recursive: true, force: true });
+  }
+});

@@ -544,6 +544,56 @@ git add test/ref.test.js test/install.test.js src/lib/ref.js src/lib/registry.js
 git commit -m "feat: support markdown-first install sources and dependency install"
 ```
 
+---
+
+## Post-Implementation Notes (2026-03-31)
+
+> 以下记录计划与实际实现之间的差异，供未来维护参考。
+
+### 模块差异
+
+| 计划描述 | 实际实现 | 说明 |
+|---------|---------|------|
+| 未提及 `src/lib/source.js` | 新建 `source.js`（29 行） | 提取 remote fetching 为独立模块：`fetchUrlSkill()` + `fetchRemoteSkill()`，支持 fetch 依赖注入便于测试 |
+| `listInstalledSkillSpecs()` 简单读取 | 使用 dynamic import + `?t=${Date.now()}` cache-busting | Node.js ESM 模块缓存要求每次 import 用唯一 query param，否则 `loadSkillSpec` 在同一进程中返回缓存结果 |
+| Test helper 仅有 `withTempSkillcliHome()` | 额外增加 `writeFixtureSkill(home, spec)` | 测试中频繁需要写入 fixture skill.md，提取为共享 helper 减少重复 |
+
+### 匹配算法差异（相对于 skill-index-design.md 的设计）
+
+| 设计稿描述 | 实际实现 | 影响 |
+|-----------|---------|------|
+| 三级匹配：exact (1.0) + partial (0.6) + token overlap (0.3) | 两级：exact (1.0) + token overlap (0.3) | 中间的 substring tier 缺失，`"bill"` 无法匹配到 `"billing"` |
+| domain coherence boost (score × 1.1) | 未实现 | `matchSkills()` 无 `loaded` 参数，无法感知已加载 skill 的 domain |
+| 中文 2-gram/3-gram 滑动窗口 | 简单字符级分割 | 对短 trigger（"发票"、"账单"）足够，长短语匹配精度略低 |
+| session 级 dedup（已加载 skill 不重复加载） | 未实现（CLI 无状态） | dedup 责任留给 hook 消费方 |
+
+### 验证差异
+
+| 计划描述 | 实际实现 | 说明 |
+|---------|---------|------|
+| `validateIndex()` 检查直接依赖完整性 | 仅检查直接 deps | 传递依赖（A→B→C，C 缺失）不会被检测到 |
+
+### 架构纸中声明但未实现的能力
+
+| 架构文档章节 | 状态 | 说明 |
+|-------------|------|------|
+| §4.5 Step 9 — post-action hook 日志反馈 | 未实现 | 无 telemetry/feedback 机制 |
+| §4.8 — drift detection（body 变了但 triggers 没更新） | 未实现 | `validateIndex()` 不检测内容漂移 |
+| Appendix A — `platform: string[]` 字段 | 未实现 | frontmatter schema 中未包含 |
+| Appendix A — `updated: date` 字段 | 未实现 | frontmatter schema 中未包含 |
+| §8.1 — agent-agnostic skill format | 部分实现 | adapter.js 支持多平台 emit，但 frontmatter 无 platform 字段 |
+
+### 待改进项（已识别，未排期）
+
+1. **补回 substring (0.6) 匹配层** — router.js 中 trigger 子串包含应获得中间分数
+2. **domain coherence boost** — `matchSkills()` 增加 `loaded` 参数支持 domain 加分
+3. **transitive dependency validation** — `validateIndex()` 递归检查完整依赖链
+4. **`--exclude` flag** — `skill index match` 支持排除已加载 skill
+5. **CJK token 估算优化** — `estimateTokens()` 区分 CJK 字符（~1.5 tokens）和 ASCII（~0.25 tokens）
+6. **Registry cache TTL** — 当前缓存无失效机制
+
+---
+
 ### Task 6: Update Docs and Acceptance Coverage
 
 **Files:**

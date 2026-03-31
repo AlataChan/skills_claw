@@ -61,3 +61,26 @@ test('serializeSkillSpec converts legacy runtime data to canonical skill.md text
   assert.match(text, /version: "2026:03:23"/);
   assert.match(text, /\n---\nhello\n?$/);
 });
+
+test('serializeSkillSpec round-trips inline arrays through loadSkillSpec', async () => {
+  const text = serializeSkillSpec({
+    name: 'invoice-review',
+    version: '1.0.0',
+    description: 'Invoice review',
+    tier: 'domain',
+    domain: 'finance',
+    triggers: ['invoice', 'billing'],
+    summary: 'Review invoices',
+    depends: ['pdf'],
+    priority: 'normal',
+    capabilities: ['read-file'],
+    mcp_deps: [],
+    inputs: [],
+    body: 'Review invoice packets.',
+  });
+
+  const spec = await loadSkillSpec('skill.md', text);
+  assert.deepEqual(spec.triggers, ['invoice', 'billing']);
+  assert.deepEqual(spec.depends, ['pdf']);
+  assert.deepEqual(spec.capabilities, ['read-file']);
+});

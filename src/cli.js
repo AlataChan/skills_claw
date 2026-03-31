@@ -12,7 +12,7 @@ import {
   buildSkillContentPayload,
   emitHookConfig,
 } from './lib/hook.js';
-import { matchSkills, resolveSkillDeps, validateIndex } from './lib/router.js';
+import { matchSkills, resolveAllSkillDeps, resolveSkillDeps, validateIndex } from './lib/router.js';
 import { addSource, findSkill, getConfig, listSources, removeSource, searchSkills } from './lib/registry.js';
 import { checkDeps } from './lib/mcp.js';
 import { emitBuiltIn, builtInAdapters } from './lib/adapter.js';
@@ -41,6 +41,14 @@ function argsToPositionals(args) {
     positionals.push(args[i]);
   }
   return positionals;
+}
+
+function parseCsvFlag(value) {
+  if (value === undefined) return [];
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 async function loadFromRef(refText) {
@@ -165,6 +173,8 @@ async function main() {
       const result = matchSkills(query, index, {
         threshold: flags.threshold,
         max: flags.max,
+        loadedSkills: parseCsvFlag(flags.exclude),
+        loadedDomains: parseCsvFlag(flags['loaded-domains']),
       });
       if (flags.json === 'true') console.log(JSON.stringify(buildMatchResultPayload(result, index.skill_count || 0), null, 2));
       else console.log(JSON.stringify(result, null, 2));
@@ -173,7 +183,7 @@ async function main() {
 
     if (sub === 'deps') {
       const index = await loadIndex();
-      const result = resolveSkillDeps(positionals[0], index);
+      const result = flags.all === 'true' ? resolveAllSkillDeps(index) : resolveSkillDeps(positionals[0], index);
       console.log(JSON.stringify(result, null, 2));
       return;
     }

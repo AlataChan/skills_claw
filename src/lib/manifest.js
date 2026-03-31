@@ -4,7 +4,14 @@ function parseScalar(v) {
   if (t === 'false') return false;
   if (/^-?\d+(\.\d+)?$/.test(t)) return Number(t);
   if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) return t.slice(1, -1);
-  if (t.startsWith('[') && t.endsWith(']')) return t.slice(1, -1).split(',').map((x) => x.trim()).filter(Boolean);
+  if (t.startsWith('[') && t.endsWith(']')) {
+    return t
+      .slice(1, -1)
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map((x) => parseScalar(x));
+  }
   return t;
 }
 

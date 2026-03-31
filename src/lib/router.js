@@ -15,6 +15,10 @@ function flattenDomainSkills(index) {
   return [...domainSkills, ...ungrouped];
 }
 
+function listAllSkills(index) {
+  return [...flattenDomainSkills(index), ...(index.core || [])];
+}
+
 function buildSkillMap(index) {
   const map = new Map();
   for (const skill of flattenDomainSkills(index)) map.set(skill.name, skill);
@@ -28,27 +32,41 @@ function scorePriority(priority) {
   return 1;
 }
 
-function scoreSkill(query, skill) {
+function scoreDomainCoherence(skill, loadedDomains = []) {
+  if (!skill.domain) return 1;
+  return loadedDomains.includes(skill.domain) ? 1.1 : 1;
+}
+
+function scoreSkill(query, skill, opts = {}) {
   const normalizedQuery = String(query || '').toLowerCase();
   const queryTokens = tokenize(query);
   let score = 0;
   let matchType = 'none';
-  const matchedTriggers = [];
+  const matchedTriggers = new Set();
 
   for (const trigger of skill.triggers || []) {
     const normalizedTrigger = String(trigger).toLowerCase();
     if (!normalizedTrigger) continue;
     if (normalizedQuery.includes(normalizedTrigger)) {
-      matchedTriggers.push(trigger);
+      matchedTriggers.add(trigger);
       score = Math.max(score, 1);
       matchType = 'exact';
+      continue;
+    }
+
+    if (normalizedTrigger.includes(normalizedQuery)) {
+      matchedTriggers.add(trigger);
+      if (0.6 > score) {
+        score = 0.6;
+        matchType = 'substring';
+      }
       continue;
     }
 
     const triggerTokens = tokenize(trigger);
     const overlap = triggerTokens.filter((token) => queryTokens.includes(token));
     if (overlap.length > 0) {
-      matchedTriggers.push(trigger);
+      matchedTriggers.add(trigger);
       const overlapRatio = overlap.length / triggerTokens.length;
       const overlapScore = 0.3 * overlapRatio;
       if (overlapScore > score) {
@@ -60,8 +78,8 @@ function scoreSkill(query, skill) {
 
   return {
     ...skill,
-    score: Number((score * scorePriority(skill.priority)).toFixed(3)),
-    matched_triggers: matchedTriggers,
+    score: Number((score * scorePriority(skill.priority) * scoreDomainCoherence(skill, opts.loadedDomains || [])).toFixed(3)),
+    matched_triggers: [...matchedTriggers],
     match_type: matchType,
   };
 }
@@ -111,13 +129,23 @@ export function resolveSkillDeps(skillName, index, loadedSkills = []) {
   return resolved;
 }
 
+export function resolveAllSkillDeps(index, loadedSkills = []) {
+  const graph = {};
+  for (const skill of listAllSkills(index)) {
+    graph[skill.name] = resolveSkillDeps(skill.name, index, loadedSkills);
+  }
+  return graph;
+}
+
 export function matchSkills(query, index, opts = {}) {
   const threshold = Number(opts.threshold ?? 0.5);
   const max = Number(opts.max ?? 5);
   const loadedSkills = opts.loadedSkills || [];
+  const loadedSet = new Set(loadedSkills);
 
   const matches = flattenDomainSkills(index)
-    .map((skill) => scoreSkill(query, skill))
+    .filter((skill) => !loadedSet.has(skill.name))
+    .map((skill) => scoreSkill(query, skill, opts))
     .filter((skill) => skill.score >= threshold)
     .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
     .slice(0, max)
@@ -162,21 +190,54 @@ export function validateIndex(index) {
   const warnings = [];
   const errors = [];
   const skillMap = buildSkillMap(index);
+  const warningSet = new Set();
+
+  function addWarning(message) {
+    if (!warningSet.has(message)) {
+      warningSet.add(message);
+      warnings.push(message);
+    }
+  }
+
   for (const skill of flattenDomainSkills(index)) {
     if (skill.tier !== 'domain') errors.push(`invalid tier for ${skill.name}`);
-    if (!skill.summary) warnings.push(`missing summary for ${skill.name}`);
+    if (!skill.summary) addWarning(`missing summary for ${skill.name}`);
     if (!Array.isArray(skill.triggers) || skill.triggers.length === 0) {
-      warnings.push(`no triggers defined for ${skill.name}`);
+      addWarning(`no triggers defined for ${skill.name}`);
     }
   }
 
   for (const skill of skillMap.values()) {
     for (const dep of skill.depends || []) {
-      if (!skillMap.has(dep)) warnings.push(`unknown dependency "${dep}" in ${skill.name}`);
+      if (!skillMap.has(dep)) addWarning(`unknown dependency "${dep}" in ${skill.name}`);
     }
   }
 
-  warnings.push(...detectCycles(index));
+  for (const warning of detectCycles(index)) addWarning(warning);
+
+  for (const skill of skillMap.values()) {
+    const visited = new Set();
+
+    function visit(depName, trail = []) {
+      if (visited.has(depName)) return;
+      visited.add(depName);
+
+      const depSkill = skillMap.get(depName);
+      if (!depSkill) {
+        if (trail.length > 0) {
+          addWarning(`transitive dependency "${depName}" required by ${skill.name} via ${trail.join(' -> ')}`);
+        }
+        return;
+      }
+
+      for (const childDep of depSkill.depends || []) {
+        visit(childDep, [...trail, depSkill.name]);
+      }
+    }
+
+    for (const dep of skill.depends || []) visit(dep);
+  }
+
   return {
     ok: errors.length === 0,
     errors,
