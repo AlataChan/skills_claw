@@ -1,5 +1,3 @@
-import fs from 'node:fs/promises';
-
 function parseScalar(v) {
   const t = v.trim();
   if (t === 'true') return true;
@@ -62,20 +60,32 @@ export function parseSimpleYaml(text) {
   return root;
 }
 
-export async function loadManifest(file) {
-  const content = await fs.readFile(file, 'utf-8');
-  if (file.endsWith('.json')) return JSON.parse(content);
-  return parseSimpleYaml(content);
-}
-
 export function validateManifest(manifest) {
   const errors = [];
-  const required = ['schema_version', 'name', 'version', 'description', 'system_prompt', 'capabilities', 'mcp_deps', 'inputs'];
+  const required = ['name', 'version', 'description', 'capabilities', 'mcp_deps', 'inputs'];
   for (const key of required) {
     if (manifest[key] === undefined) errors.push(`missing required field: ${key}`);
   }
+  if (manifest.body === undefined && manifest.system_prompt === undefined) {
+    errors.push('missing required field: body');
+  }
   if (manifest.permission_policy) errors.push('permission_policy is not allowed in manifest');
   if (manifest.flow_templates) errors.push('flow_templates is not allowed in manifest');
+  if (manifest.tier !== undefined && !['core', 'domain'].includes(manifest.tier)) {
+    errors.push('invalid tier');
+  }
+  if (manifest.priority !== undefined && !['high', 'normal', 'low'].includes(manifest.priority)) {
+    errors.push('invalid priority');
+  }
+  if (manifest.triggers !== undefined && !Array.isArray(manifest.triggers)) {
+    errors.push('triggers must be an array');
+  }
+  if (manifest.depends !== undefined && !Array.isArray(manifest.depends)) {
+    errors.push('depends must be an array');
+  }
+  if (manifest.summary !== undefined && typeof manifest.summary !== 'string') {
+    errors.push('summary must be a string');
+  }
   if (manifest.inputs && Array.isArray(manifest.inputs)) {
     for (const input of manifest.inputs) {
       if (!['string', 'number', 'boolean', 'enum'].includes(input.type)) errors.push(`invalid input type for ${input.name}`);

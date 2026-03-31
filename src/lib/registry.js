@@ -1,15 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { BASE_DIR, CONFIG_PATH, ensureDir, readJson, writeJson } from './fsutil.js';
-
-const CACHE_DIR = path.join(BASE_DIR, 'cache');
+import { ensureDir, getCacheDir, getConfigPath, readJson, writeJson } from './fsutil.js';
 
 export async function getConfig() {
-  return (await readJson(CONFIG_PATH, { sources: [], mcpHubUrl: 'http://localhost:18800', adapters: [] })) || { sources: [] };
+  return (await readJson(getConfigPath(), { sources: [], mcpHubUrl: 'http://localhost:18800', adapters: [] })) || { sources: [] };
 }
 
 export async function saveConfig(config) {
-  await writeJson(CONFIG_PATH, config);
+  await writeJson(getConfigPath(), config);
 }
 
 export async function addSource(url) {
@@ -40,7 +38,8 @@ async function loadRegistryFromSource(source) {
 }
 
 export async function refreshSources() {
-  await ensureDir(CACHE_DIR);
+  const cacheDir = getCacheDir();
+  await ensureDir(cacheDir);
   const cfg = await getConfig();
   const all = [];
   for (const source of cfg.sources) {
@@ -49,7 +48,7 @@ export async function refreshSources() {
       const items = reg.skills || [];
       all.push(...items);
       const key = Buffer.from(source).toString('base64url');
-      await writeJson(path.join(CACHE_DIR, `${key}.json`), reg);
+      await writeJson(path.join(cacheDir, `${key}.json`), reg);
     } catch {
       // ignore one source failure
     }

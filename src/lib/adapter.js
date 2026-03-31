@@ -26,6 +26,7 @@ export async function runAdapterProcess(adapterCmd, payload) {
 }
 
 export function emitBuiltIn(target, manifest) {
+  const systemContent = manifest.body || manifest.system_prompt || '';
   if (target === 'openai') {
     return {
       files: [
@@ -33,13 +34,13 @@ export function emitBuiltIn(target, manifest) {
           path: 'tools.json',
           content: JSON.stringify((manifest.mcp_deps || []).map((d) => ({ type: 'function', function: { name: d.tool, description: d.description || '' } })), null, 2),
         },
-        { path: 'system.md', content: manifest.system_prompt || '' },
+        { path: 'system.md', content: systemContent },
       ],
     };
   }
   if (target === 'claude-code') {
     return {
-      files: [{ path: `.claude/skills/${manifest.name}/skill.md`, content: `# ${manifest.name}\n\n${manifest.system_prompt || ''}` }],
+      files: [{ path: `.claude/skills/${manifest.name}/skill.md`, content: `# ${manifest.name}\n\n${systemContent}` }],
     };
   }
   if (target === 'anthropic-api') {

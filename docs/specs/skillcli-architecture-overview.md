@@ -4,6 +4,11 @@
 **日期：** 2026-02-22
 **状态：** 设计评审通过
 
+> 2026-03-23 更新：
+> 当前实现已切换到 `skill.md` 作为 canonical installed artifact。
+> `skill.yaml` 仅保留为 legacy import/source 兼容格式。
+> 运行时加载、routing table、hook 输出以 [`docs/plans/2026-03-23-cli-first-alignment.md`](/Users/apple/Documents/2.1%20AI%20Journey/Cursor_projects/skills_claw/docs/plans/2026-03-23-cli-first-alignment.md) 为准。
+
 > 本文是 SkillCLI 系统所有 spec 文档的导航入口。
 > 阅读顺序：本文 → skill-manifest-spec.md → hub-api-spec.md → adapter-protocol-spec.md
 
@@ -15,13 +20,13 @@ SkillCLI 系统存在两种 Skill 形态，它们是**不同抽象层**，不是
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 1: skill.yaml — Manifest（意图层）                     │
+│  Layer 1: skill.md — Frontmatter Skill（意图层）               │
 │                                                               │
 │  作者编写，描述 Skill "是什么"                                  │
 │  LLM 自主编排执行（不规定执行步骤）                              │
 │  跨 runtime 通用（Claude / OpenAI / Gemini / GLM / Kimi...） │
 │                                                               │
-│  核心字段：system_prompt + capabilities + mcp_deps + inputs  │
+│  核心字段：frontmatter + markdown body                        │
 └─────────────────────────┬───────────────────────────────────┘
                           │
                两条路径，分别走向不同目标
@@ -46,7 +51,7 @@ SkillCLI 系统存在两种 Skill 形态，它们是**不同抽象层**，不是
 
 | 形态 | 适合场景 | 执行方式 |
 |------|---------|---------|
-| **skill.yaml（Manifest）** | 通用 AI 助手技能，跨 runtime 分发 | LLM 根据 system_prompt 自主决策调用哪些工具 |
+| **skill.md（Frontmatter Skill）** | 通用 AI 助手技能，跨 runtime 分发 | LLM 根据 markdown body + frontmatter 自主决策调用哪些工具 |
 | **skill.json（Workflow）** | 确定性业务流程，如"库存不足时自动补货" | 按预定义 steps 顺序执行，有条件分支，无 LLM 参与 |
 
 ---
@@ -57,7 +62,7 @@ SkillCLI 系统存在两种 Skill 形态，它们是**不同抽象层**，不是
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        作者 / 开发者                                   │
 │                                                                       │
-│   skill init → 编写 skill.yaml                                       │
+│   skill init → 编写 skill.md                                         │
 │   skill generate → LLM 生成 skill.json（基于 Hub catalog）             │
 └──────────┬──────────────────────────────────┬───────────────────────┘
            │                                  │
@@ -117,7 +122,7 @@ skill info <skill-ref>
 #   invoice-processor
 #   invoice-processor@1.2.0
 #   github:sga/invoice-processor@abc123def456
-#   ./local/path/to/skill
+#   ./local/path/to/skill.md
 skill install <skill-ref> [--target claude-code] [--input k=v]
 skill uninstall <skill-name>
 skill update <skill-name> | --all
@@ -136,7 +141,7 @@ skill adapter list | install <adapter-name>
 skill emit <skill-name> --target openai --out ./dist
 
 # ── 创作 ─────────────────────────────────────────────
-skill init                           # 交互式创建 skill.yaml
+skill init                           # 创建 skill.md
 skill evolve add <skill-name>        # 记录经验到 evolution.json
 
 # ── 诊断 ─────────────────────────────────────────────

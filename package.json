@@ -8,7 +8,7 @@
     "skill": "src/cli.js"
   },
   "scripts": {
-    "test": "node --test",
+    "test": "node --test test/*.test.js",
     "lint": "node --check src/cli.js"
   },
   "repository": {

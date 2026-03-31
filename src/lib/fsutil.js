@@ -3,9 +3,26 @@ import path from 'node:path';
 import os from 'node:os';
 
 export const HOME = os.homedir();
-export const BASE_DIR = process.env.SKILLCLI_HOME || path.join(HOME, '.skillcli');
-export const SKILLS_DIR = path.join(BASE_DIR, 'skills');
-export const CONFIG_PATH = path.join(BASE_DIR, 'config.json');
+
+export function getBaseDir() {
+  return process.env.SKILLCLI_HOME || path.join(HOME, '.skillcli');
+}
+
+export function getSkillsDir() {
+  return path.join(getBaseDir(), 'skills');
+}
+
+export function getConfigPath() {
+  return path.join(getBaseDir(), 'config.json');
+}
+
+export function getCacheDir() {
+  return path.join(getBaseDir(), 'cache');
+}
+
+export function getIndexPath() {
+  return path.join(getBaseDir(), 'index.json');
+}
 
 export async function ensureDir(dir) {
   await fs.mkdir(dir, { recursive: true });

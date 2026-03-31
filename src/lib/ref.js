@@ -6,7 +6,7 @@ export function parseSkillRef(ref) {
     const [repo, hash] = body.split('@');
     return { type: 'github', repo, hash: hash || 'HEAD' };
   }
-  if (ref.startsWith('./') || ref.startsWith('/') || ref.endsWith('.yaml') || ref.endsWith('.yml') || ref.endsWith('.json')) {
+  if (ref.startsWith('./') || ref.startsWith('/') || ref.endsWith('.md') || ref.endsWith('.yaml') || ref.endsWith('.yml') || ref.endsWith('.json')) {
     return { type: 'local', path: path.resolve(ref) };
   }
   const [name, version] = ref.split('@');

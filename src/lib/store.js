@@ -1,23 +1,33 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { SKILLS_DIR, ensureDir, readJson, writeJson, pathExists } from './fsutil.js';
+import { ensureDir, getSkillsDir, pathExists, readJson, writeJson } from './fsutil.js';
+import { loadSkillSpec, serializeSkillSpec } from './frontmatter.js';
+
+function assertValidSkillName(name) {
+  if (typeof name !== 'string' || !name || /[/\\]/.test(name) || name.includes('..')) {
+    throw new Error(`invalid skill name: ${name}`);
+  }
+}
 
 export async function listInstalled() {
-  await ensureDir(SKILLS_DIR);
-  const dirs = await fs.readdir(SKILLS_DIR, { withFileTypes: true });
+  const skillsDir = getSkillsDir();
+  await ensureDir(skillsDir);
+  const dirs = await fs.readdir(skillsDir, { withFileTypes: true });
   const out = [];
   for (const d of dirs) {
     if (!d.isDirectory()) continue;
-    const lock = await readJson(path.join(SKILLS_DIR, d.name, 'skill.lock.json'), {});
+    const lock = await readJson(path.join(skillsDir, d.name, 'skill.lock.json'), {});
     out.push({ name: d.name, version: lock.version || 'unknown', source: lock.resolved_source?.url || 'local' });
   }
   return out;
 }
 
 export async function saveInstalled(manifest, source, resolvedInputs) {
-  const dir = path.join(SKILLS_DIR, manifest.name);
+  assertValidSkillName(manifest.name);
+  const skillsDir = getSkillsDir();
+  const dir = path.join(skillsDir, manifest.name);
   await ensureDir(dir);
-  await fs.writeFile(path.join(dir, 'skill.yaml'), source.manifestText, 'utf-8');
+  await fs.writeFile(path.join(dir, 'skill.md'), serializeSkillSpec(manifest), 'utf-8');
   await writeJson(path.join(dir, 'skill.lock.json'), {
     schema_version: manifest.schema_version,
     skill: manifest.name,
@@ -27,14 +37,31 @@ export async function saveInstalled(manifest, source, resolvedInputs) {
   });
 }
 
+export async function listInstalledSkillSpecs() {
+  const skillsDir = getSkillsDir();
+  await ensureDir(skillsDir);
+  const dirs = await fs.readdir(skillsDir, { withFileTypes: true });
+  const specs = [];
+  for (const d of dirs) {
+    if (!d.isDirectory()) continue;
+    const skillPath = path.join(skillsDir, d.name, 'skill.md');
+    if (!(await pathExists(skillPath))) continue;
+    specs.push(await loadSkillSpec(skillPath));
+  }
+  return specs;
+}
+
 export async function uninstall(name) {
-  await fs.rm(path.join(SKILLS_DIR, name), { recursive: true, force: true });
+  assertValidSkillName(name);
+  await fs.rm(path.join(getSkillsDir(), name), { recursive: true, force: true });
 }
 
 export async function hasInstalled(name) {
-  return pathExists(path.join(SKILLS_DIR, name));
+  assertValidSkillName(name);
+  return pathExists(path.join(getSkillsDir(), name));
 }
 
 export function installedManifestPath(name) {
-  return path.join(SKILLS_DIR, name, 'skill.yaml');
+  assertValidSkillName(name);
+  return path.join(getSkillsDir(), name, 'skill.md');
 }
